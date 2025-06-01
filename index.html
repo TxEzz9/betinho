@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApostaSafe - Sistema de Apostas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a202c',
+                        secondary: '#2d3748',
+                        accent: '#f97316',
+                        accent2: '#2dd4bf',
+                        dark: '#0d121e',
+                        betgreen: '#10b981',
+                        cardbg: '#1a243a'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@300;400;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0d121e, #1c2638);
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        
+        .header-title {
+            font-family: 'Oswald', sans-serif;
+            text-shadow: 0 0 10px rgba(249, 115, 22, 0.7);
+        }
+        
+        .game-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(249, 115, 22, 0.2);
+            border-color: #f97316;
+        }
+        
+        .bet-card {
+            background: linear-gradient(145deg, #111827, #1a202c);
+            border: 1px solid #374151;
+            border-radius: 10px;
+        }
+        
+        .stats-card {
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .odds-badge {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+            70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        
+        .profit-badge {
+            animation: jump 1s ease infinite alternate;
+        }
+        
+        @keyframes jump {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-8px); }
+        }
+        
+        .flip-in {
+            animation: flipIn 0.8s ease forwards;
+        }
+        
+        @keyframes flipIn {
+            0% { transform: rotateY(90deg); opacity: 0; }
+            100% { transform: rotateY(0deg); opacity: 1; }
+        }
+        
+        .gradient-text {
+            background: linear-gradient(90deg, #f97316, #2dd4bf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 8px rgba(249, 115, 22, 0.8);
+        }
+        
+        .balance-card {
+            background: linear-gradient(90deg, #0f172a, #1e293b);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .balance-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 60%);
+            transform: rotate(20deg);
+        }
+        
+        .selected {
+            background-color: #065f46 !important;
+            border: 2px solid #2dd4bf !important;
+        }
+        
+        .winning-animation {
+            animation: winPulse 1.5s infinite;
+        }
+        
+        @keyframes winPulse {
+            0% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(45, 212, 191, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); }
+        }
+        
+        .losing-animation {
+            animation: losePulse 1.5s infinite;
+        }
+        
+        @keyframes losePulse {
+            0% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(248, 113, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); }
+        }
+        
+        .money-fall {
+            position: fixed;
+            top: -50px;
+            font-size: 24px;
+            opacity: 0;
+            animation: moneyFall 3s linear forwards;
+            z-index: 100;
+        }
+        
+        @keyframes moneyFall {
+            0% {
+                top: -50px;
+                opacity: 1;
+            }
+            100% {
+                top: 100vh;
+                opacity: 0;
+                transform: translateY(0) rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body class="pb-16">
+    <!-- Cabeçalho -->
+    <header class="sticky top-0 z-50 bg-gradient-to-r from-primary to-secondary shadow-xl">
+        <div class="container mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between">
+            <div class="flex items-center">
+                <div class="bg-accent rounded-full p-2 mr-3">
+                    <i class="fas fa-dice-d20 text-white text-2xl"></i>
+                </div>
+                <h1 class="header-title text-3xl font-bold tracking-wider">
+                    <span class="gradient-text">ApostaSafe</span>
+                </h1>
+            </div>
+            
+            <div class="mt-4 sm:mt-0 flex items-center">
+                <div class="balance-card px-6 py-3 rounded-xl border border-gray-700 mr-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-coins text-yellow-300 text-xl mr-2"></i>
+                        <span class="font-bold text-xl">Saldo:</span>
+                        <span id="balance" class="ml-2 font-bold text-accent2 text-xl">R$ 5.000,00</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <button id="soundToggle" class="bg-secondary mr-2 hover:bg-gray-700 text-white font-bold py-2 px-3 rounded-lg transition">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                    <button class="bg-accent hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg transition mr-3 flex items-center">
+                        <i class="fas fa-user-circle mr-2"></i> Conta
+                    </button>
+                    <button id="refreshBtn" class="bg-accent2 hover:bg-teal-500 text-gray-900 font-bold py-2 px-3 rounded-lg transition">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Cards de estatísticas -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="stats-card p-6 flex flex-col items-center">
+                <div class="text-4xl font-bold text-accent2">R$ 43,3 M</div>
+                <div class="text-gray-400 mt-2">Em Apostas Hoje</div>
+                <div class="w-full h-1 bg-gradient-to-r from-accent2 to-accent mt-3 rounded-full"></div>
+            </div>
+            <div class="stats-card p-6 flex flex-col items-center">
+                <div class="text-4xl font-bold text-accent">1.492</div>
+                <div class="text-gray-400 mt-2">Eventos ao Vivo</div>
+                <div class="w-full h-1 bg-gradient-to-r from-accent to-accent2 mt-3 rounded-full"></div>
+            </div>
+            <div class="stats-card p-6 flex flex-col items-center">
+                <div class="text-4xl font-bold text-green-400">94%</div>
+                <div class="text-gray-400 mt-2">Taxa de Retorno</div>
+                <div class="w-full h-1 bg-gradient-to-r from-green-400 to-accent2 mt-3 rounded-full"></div>
+            </div>
+        </div>
+
+        <div class="flex mb-6">
+            <h2 class="text-2xl font-bold border-l-4 border-accent pl-3 glow-text">Eventos em Destaque</h2>
+        </div>
+
+        <!-- Eventos esportivos -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            <!-- Card de evento 1 -->
+            <div class="game-card">
+                <div class="p-5 border-b border-gray-700">
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-400 flex items-center">
+                            <i class="fas fa-futbol text-green-400 mr-2"></i> Futebol • Brasileirão Série A
+                        </div>
+                        <div class="px-3 py-1 bg-red-500 text-white text-xs rounded-full">Ao vivo</div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center my-4">
+                        <div class="text-center">
+                            <div class="font-bold text-lg">Flamengo</div>
+                            <div class="text-xs text-gray-400 mt-1">V: 3.6 | E: 3.1 | D: 2.2</div>
+                        </div>
+                        <div class="text-3xl font-bold mx-3">VS</div>
+                        <div class="text-center">
+                            <div class="font-bold text-lg">Palmeiras</div>
+                            <div class="text-xs text-gray-400 mt-1">V: 2.1 | E: 3.5 | D: 3.8</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center bg-gray-800 rounded py-1 text-xs">Tempo: 63' | Placar: 1-1</div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2 p-4">
+                    <button class="odds-badge bg-secondary hover:bg-gray-700 transition py-3 px-2 text-center rounded cursor-pointer odds-btn" data-event="1" data-selection="home" data-odd="3.6">
+                        <div>Flamengo</div>
+                        <div class="font-bold text-accent2 mt-1">3.60</div>
+                    </button>
+                    <button class="odds-badge bg-secondary hover:bg-gray-700 transition py-3 px-2 text-center rounded cursor-pointer odds-btn" data-event="1" data-selection="draw" data-odd="3.1">
+                        <div>Empate</div>
+                        <div class="font-bold text-accent2 mt-1">3.10</div>
+                    </button>
+                    <button class="odds-badge bg-secondary hover:bg-gray-700 transition py-3 px-2 text-center rounded cursor-pointer odds-btn" data-event="1" data-selection="away" data-odd="2.2">
+                        <div>Palmeiras</div>
+                        <div class="font-bold text-accent2 mt-1">2.20</div>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Card de evento 2 -->
+            <div class="game-card">
+                <div class="p-5 border-b border-gray-700">
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-400 flex items-center">
+                            <i class="fas fa-basketball-ball text-orange-400 mr-2"></i> Basquete • NBA
+                        </div>
+                        <div class="px-3 py-1 bg-accent text-white text-xs rounded-full">Início em 2h</div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center my-4">
+                        <div class="text-center">
+                            <div class="font-bold text-lg">Lakers</div>
+                            <div class="text-xs text-gray-400 mt-1">V: 1.8 | D: 2.3</div>
+                        </div>
+                        <div class="text-3xl font-bold mx-3">VS</div>
+                        <div class="text-center">
+                            <div class="font-bold text-lg">Warriors</div>
+                            <div class="text-xs text-gray-400 mt-1">V: 2.0 | D: 1.7</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center bg-gray-800 rounded py-1 text-xs">Oracle Arena - 21:00h</div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 p-4">
+                    <button class="odds-badge bg-secondary hover:bg-gray-700 transition py-3 px-2 text-center rounded cursor-pointer odds-btn" data-event="2" data-selection="home" data-odd="1.8">
+                        <div>Lakers</div>
+                        <div class="font-bold text-accent2 mt-1">1.80</div>
+                    </button>
+                    <button class="odds-badge bg-secondary hover:bg-gray-700 transition py-3 px-2 text-center rounded cursor-pointer odds-btn" data-event="2" data-selection="away" data-odd="2.3">
+                        <div>Warriors</div>
+                        <div class="font-bold text-accent2 mt-1">2.30</div>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Card de evento 3 -->
+            <div class="game-card">
+                <div class="p-5 border-b border-gray-700">
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-400 flex items-center">
+                            <i class="fas fa-table-tennis text-blue-400 mr-2"></i> Tênis • Grand Slam
+                        </div>
+                        <div class="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">Quartas</div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center my-4">
+                        <div class="text-center">
+                            <div class="font-bold text-lg">Djokovic</div>
+                            <div class="text-xs text-gray-400 mt-1">V: 1.5 | D: 2.8</div>
+                        </div>
+                        <div class="text-3xl font-bold mx-3">VS</div>
+                        <div class="text-center">
+                            <div class="font-bold text-lg">Alcaraz</div>
+                            <div class="text-xs text-gray-400 mt-1">V: 1.6 | D: 2.4</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center bg-gray-800 rounded py-1 text-xs">Sets: 1-1 | 2º Set: 5-4</div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 p-4">
+                    <button class="odds-badge bg-secondary hover:bg-gray-700 transition py-3 px-2 text-center rounded cursor-pointer odds-btn" data-event="3" data-selection="home" data-odd="1.5">
+                        <div>Djokovic</div>
+                        <div class="font-bold text-accent2 mt-1">1.50</div>
+                    </button>
+                    <button class="odds-badge bg-secondary hover:bg-gray-700 transition py-3 px-2 text-center rounded cursor-pointer odds-btn" data-event="3" data-selection="away" data-odd="2.8">
+                        <div>Alcaraz</div>
+                        <div class="font-bold text-accent2 mt-1">2.80</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Área de apostas -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-16">
+            <!-- Carrinho de apostas -->
+            <div class="lg:col-span-2">
+                <div class="bet-card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold"><i class="fas fa-shopping-cart mr-3 text-accent2"></i>Seu Carrinho</h2>
+                        <button id="clearBets" class="text-sm text-red-500 hover:text-red-400 transition flex items-center">
+                            <i class="fas fa-trash mr-1"></i> Limpar
+                        </button>
+                    </div>
+                    
+                    <div id="betList" class="mb-4">
+                        <div class="text-center py-12 text-gray-500">
+                            <i class="fas fa-shopping-basket text-3xl mb-3"></i>
+                            <p>Selecione uma aposta para começar</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-800 rounded-lg p-4 mb-4">
+                        <div class="flex justify-between mb-2">
+                            <span>Total de Aposta:</span>
+                            <span id="totalStake">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span>Ganhos Potenciais:</span>
+                            <span id="potentialWin">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-lg">
+                            <span>Total:</span>
+                            <span id="totalWin">R$ 0,00</span>
+                        </div>
+                    </div>
+                    
+                    <form id="betForm" class="space-y-4">
+                        <div>
+                            <label for="stake" class="block mb-2">Valor da Aposta (R$)</label>
+                            <div class="flex">
+                                <input type="number" id="stake" min="0" step="0.01" placeholder="0.00" class="flex-1 p-3 rounded-l-lg bg-gray-800 border border-gray-700">
+                                <button type="button" class="w-12 bg-accent2 text-gray-900 font-bold rounded-r-lg" onclick="setStake(10)">10</button>
+                                <button type="button" class="w-12 bg-accent2 text-gray-900 font-bold ml-1" onclick="setStake(50)">50</button>
+                                <button type="button" class="w-12 bg-accent2 text-gray-900 font-bold ml-1" onclick="setStake(100)">100</button>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <button type="submit" class="p-3 bg-gradient-to-r from-accent2 to-accent rounded-lg font-bold text-gray-900 transition transform hover:scale-105">
+                                <i class="fas fa-check mr-2"></i>Confirmar Aposta
+                            </button>
+                            <button type="button" id="randomBtn" class="p-3 bg-gradient-to-r from-secondary to-primary rounded-lg font-bold border border-gray-600 transition transform hover:scale-105">
+                                <i class="fas fa-random mr-2"></i>Misturar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Próximos eventos -->
+            <div>
+                <div class="bet-card p-6 mb-8">
+                    <h2 class="text-xl font-bold mb-6"><i class="fas fa-fire mr-3 text-red-500"></i>Destaques</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center p-3 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition">
+                            <div class="bg-secondary rounded p-3 mr-3">
+                                <i class="fas fa-futbol text-green-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold">Brasil vs Argentina</div>
+                                <div class="text-xs text-gray-400">Copa América - Amanhã 20:00</div>
+                            </div>
+                            <div class="ml-auto bg-accent2 text-gray-900 text-sm font-bold px-2 py-1 rounded">1.85</div>
+                        </div>
+                        
+                        <div class="flex items-center p-3 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition">
+                            <div class="bg-secondary rounded p-3 mr-3">
+                                <i class="fas fa-flag-checkered text-yellow-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold">Fórmula 1 - Canadá</div>
+                                <div class="text-xs text-gray-400">GP Canadá - Domingo 14:00</div>
+                            </div>
+                            <div class="ml-auto bg-accent2 text-gray-900 text-sm font-bold px-2 py-1 rounded">1.95</div>
+                        </div>
+                        
+                        <div class="flex items-center p-3 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition">
+                            <div class="bg-secondary rounded p-3 mr-3">
+                                <i class="fas fa-baseball-ball text-red-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold">Yankees vs Red Sox</div>
+                                <div class="text-xs text-gray-400">MLB - Sábado 19:30</div>
+                            </div>
+                            <div class="ml-auto bg-accent2 text-gray-900 text-sm font-bold px-2 py-1 rounded">2.20</div>
+                        </div>
+                        
+                        <div class="flex items-center p-3 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition">
+                            <div class="bg-secondary rounded p-3 mr-3">
+                                <i class="fas fa-hockey-puck text-blue-300"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold">Golden Knights</div>
+                                <div class="text-xs text-gray-400">NHL - Segunda 00:30</div>
+                            </div>
+                            <div class="ml-auto bg-accent2 text-gray-900 text-sm font-bold px-2 py-1 rounded">2.45</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Card de bônus -->
+                <div class="bet-card p-6 bg-gradient-to-r from-indigo-900/50 to-blue-900/50 border border-blue-500/30">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2"><i class="fas fa-gift text-purple-300 mr-2"></i>Bônus de Boas-Vindas!</h3>
+                            <p class="text-sm text-gray-300">Aposte seu dinheiro fake com até 200% de bônus</p>
+                        </div>
+                        <div class="profit-badge bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full px-4 py-2 text-gray-900 font-bold">
+                            200%
+                        </div>
+                    </div>
+                    <button id="bonusBtn" class="w-full mt-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg font-bold text-white transition hover:from-purple-600 hover:to-indigo-700">
+                        Resgatar Bônus
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resultados de apostas -->
+        <div id="resultsSection" class="mt-16 p-6 rounded-xl bg-gray-800/50 border border-gray-700" style="display:none;">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold"><i class="fas fa-trophy text-yellow-400 mr-3"></i>Resultados das Apostas</h2>
+                <button id="hideResults" class="text-sm text-gray-400 hover:text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="resultList"></div>
+        </div>
+    </main>
+
+    <script>
+        // Simulação de estado da aposta
+        let bets = [];
+        let balance = 5000;
+        let currentStake = 0;
+        let currentSelection = null;
+        let soundEnabled = true;
+        let bonusClaimed = false;
+        let selectedOddsBtn = null;
+        let winningInterval = null;
+        
+        // Efeitos sonoros usando Web Audio API
+        function playSound(type) {
+            if (!soundEnabled) return;
+            
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                let oscillator = audioCtx.createOscillator();
+                let gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                switch(type) {
+                    case 'select':
+                        oscillator.frequency.value = 784;
+                        gainNode.gain.value = 0.2;
+                        break;
+                    case 'add':
+                        oscillator.frequency.value = 523;
+                        gainNode.gain.value = 0.2;
+                        break;
+                    case 'remove':
+                        oscillator.frequency.value = 262;
+                        gainNode.gain.value = 0.3;
+                        break;
+                    case 'win':
+                        oscillator.frequency.value = 1047;
+                        gainNode.gain.value = 0.3;
+                        break;
+                    case 'lose':
+                        oscillator.frequency.value = 165;
+                        gainNode.gain.value = 0.3;
+                        break;
+                    case 'bet':
+                        oscillator.frequency.value = 659;
+                        gainNode.gain.value = 0.2;
+                        break;
+                    case 'coin':
+                        // Som de moedas mais complexo
+                        for(let i = 0; i < 3; i++) {
+                            setTimeout(() => {
+                                let coinOscillator = audioCtx.createOscillator();
+                                let coinGain = audioCtx.createGain();
+                                coinOscillator.connect(coinGain);
+                                coinGain.connect(audioCtx.destination);
+                                
+                                coinOscillator.frequency.value = 500 + Math.random() * 800;
+                                coinGain.gain.value = 0.2;
+                                
+                                coinOscillator.start();
+                                setTimeout(() => { 
+                                    coinOscillator.stop();
+                                }, 300);
+                            }, i * 150);
+                        }
+                        return;
+                    case 'bonus':
+                        // Som de bônus mais complexo
+                        for(let i = 0; i < 5; i++) {
+                            setTimeout(() => {
+                                let bonusOscillator = audioCtx.createOscillator();
+                                let bonusGain = audioCtx.createGain();
+                                bonusOscillator.connect(bonusGain);
+                                bonusGain.connect(audioCtx.destination);
+                                
+                                bonusOscillator.frequency.value = 500 + i * 200;
+                                bonusGain.gain.value = 0.2;
+                                
+                                bonusOscillator.start();
+                                setTimeout(() => { 
+                                    bonusOscillator.stop();
+                                }, 400);
+                            }, i * 120);
+                        }
+                        return;
+                }
+                
+                oscillator.start();
+                setTimeout(() => { 
+                    oscillator.stop();
+                }, 300);
+            } catch (e) {
+                console.log("Erro no sistema de som:", e);
+            }
+        }
+        
+        // Efeito de chuva de dinheiro
+        function createMoneyFall() {
+            const numCoins = 20;
+            const container = document.body;
+            
+            for (let i = 0; i < numCoins; i++) {
+                const coin = document.createElement('div');
+                coin.innerHTML = '💰';
+                coin.classList.add('money-fall');
+                
+                // Posição horizontal aleatória
+                const leftPos = Math.random() * window.innerWidth;
+                coin.style.left = `${leftPos}px`;
+                
+                // Atraso para criar efeito mais natural
+                const delay = Math.random() * 2;
+                coin.style.animationDelay = `${delay}s`;
+                
+                container.appendChild(coin);
+                
+                // Remover depois da animação
+                setTimeout(() => {
+                    coin.remove();
+                }, 3000);
+            }
+            
+            playSound('coin');
+        }
+        
+        // Atualiza o balanço
+        function updateBalance() {
+            const balanceElem = document.getElementById('balance');
+            balanceElem.textContent = `R$ ${balance.toFixed(2).replace('.', ',')}`;
+            
+            // Animação de atualização de saldo
+            balanceElem.classList.add('text-yellow-300');
+            setTimeout(() => {
+                balanceElem.classList.remove('text-yellow-300');
+            }, 1000);
+        }
+        
+        // Define o valor da aposta
+        function setStake(amount) {
+            document.getElementById('stake').value = amount;
+            currentStake = amount;
+            calculatePotentialWin();
+            playSound('coin');
+        }
+        
+        // Atualiza a lista de apostas
+        function updateBetList() {
+            const betList = document.getElementById('betList');
+            const totalStakeElem = document.getElementById('totalStake');
+            const potentialWinElem = document.getElementById('potentialWin');
+            const totalWinElem = document.getElementById('totalWin');
+            
+            if (bets.length === 0) {
+                betList.innerHTML = `
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-shopping-basket text-3xl mb-3"></i>
+                        <p>Selecione uma aposta para começar</p>
+                    </div>
+                `;
+                totalStakeElem.textContent = 'R$ 0,00';
+                potentialWinElem.textContent = 'R$ 0,00';
+                totalWinElem.textContent = 'R$ 0,00';
+                return;
+            }
+            
+            let betHTML = '';
+            let totalStake = 0;
+            let totalOdds = 1;
+            
+            bets.forEach(bet => {
+                totalStake += bet.stake;
+                totalOdds *= bet.odd;
+                betHTML += `
+                    <div class="bet-item flex justify-between items-center py-3 border-b border-gray-700">
+                        <div class="flex-1">
+                            <div class="font-bold">${bet.event}</div>
+                            <div class="text-sm text-gray-400">${bet.selection}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-gray-400">${bet.odd.toFixed(2)}</div>
+                            <div class="font-bold">R$ ${bet.stake.toFixed(2).replace('.', ',')}</div>
+                        </div>
+                        <button class="remove-bet ml-4 text-gray-500 hover:text-white" data-id="${bet.id}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            
+            betList.innerHTML = betHTML;
+            totalStakeElem.textContent = `R$ ${totalStake.toFixed(2).replace('.', ',')}`;
+            
+            const potentialWin = totalStake * totalOdds;
+            potentialWinElem.textContent = `R$ ${potentialWin.toFixed(2).replace('.', ',')}`;
+            totalWinElem.textContent = `R$ ${potentialWin.toFixed(2).replace('.', ',')}`;
+            
+            // Add event listeners to remove buttons
+            document.querySelectorAll('.remove-bet').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    bets = bets.filter(bet => bet.id !== parseInt(id));
+                    updateBetList();
+                    playSound('remove');
+                    
+                    // Efeito visual ao remover
+                    this.closest('.bet-item').classList.add('opacity-0', 'transition-all', 'duration-500');
+                    setTimeout(() => {
+                        updateBetList();
+                    }, 500);
+                });
+            });
+        }
+        
+        // Calcula o ganho potencial
+        function calculatePotentialWin() {
+            if (bets.length === 0 || !currentStake) return;
+            
+            const stake = parseFloat(document.getElementById('stake').value);
+            if (!stake || stake <= 0) return;
+            
+            const totalStake = bets.reduce((sum, bet) => sum + bet.stake, 0) + stake;
+            let totalOdds = bets.reduce((product, bet) => product * bet.odd, 1);
+            
+            if (currentSelection) {
+                totalOdds *= currentSelection.odd;
+            }
+            
+            const potentialWin = totalStake * totalOdds;
+            document.getElementById('potentialWin').textContent = `R$ ${potentialWin.toFixed(2).replace('.', ',')}`;
+        }
+        
+        // Mostra resultados de apostas
+        function showResults() {
+            const results = [
+                { id: 1, event: 'Flamengo vs Palmeiras', selection: 'Palmeiras', stake: 100, odd: 2.2, win: Math.random() > 0.5, amount: 220 },
+                { id: 2, event: 'Lakers vs Warriors', selection: 'Warriors', stake: 50, odd: 2.3, win: Math.random() > 0.5, amount: 115 },
+                { id: 3, event: 'Djokovic vs Alcaraz', selection: 'Djokovic', stake: 75, odd: 1.5, win: Math.random() > 0.5, amount: 112.5 }
+            ];
+            
+            // Calcular se o saldo global é positivo
+            let totalWin = 0;
+            let globalWin = false;
+            
+            results.forEach(result => {
+                if (result.win) {
+                    totalWin += result.amount;
+                } else {
+                    totalWin -= result.stake;
+                }
+            });
+            
+            globalWin = totalWin > 0;
+            
+            let resultHTML = '';
+            
+            results.forEach(result => {
+                resultHTML += `
+                    <div class="result-item ${result.win ? 'border-l-4 border-green-500' : 'border-l-4 border-red-500'} p-4 mb-4 bg-gray-900/50 rounded-lg">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="font-bold">${result.event}</div>
+                                <div class="text-sm">${result.selection} @ ${result.odd.toFixed(2)}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs">R$ ${result.stake.toFixed(2).replace('.', ',')}</div>
+                                <div class="font-bold ${result.win ? 'text-green-400' : 'text-red-400'}">
+                                    ${result.win ? 'Ganhou' : 'Perdeu'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-400">Ganho: ${result.win ? 'R$ ' + result.amount.toFixed(2).replace('.', ',') : 'R$ 0,00'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Saldo final
+            resultHTML += `
+                <div class="mt-6 p-4 rounded-lg ${globalWin ? 'bg-green-900/30 border border-green-600' : 'bg-red-900/30 border border-red-600'}">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-bold">Saldo Final</div>
+                            <div class="text-sm ${globalWin ? 'text-green-400' : 'text-red-400'}">
+                                ${globalWin ? 'Lucro' : 'Prejuízo'}: R$ ${Math.abs(totalWin).toFixed(2).replace('.', ',')}
+                            </div>
+                        </div>
+                        <div class="text-2xl ${globalWin ? 'text-green-400' : 'text-red-400'}">
+                            R$ ${(balance + totalWin).toFixed(2).replace('.', ',')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('resultList').innerHTML = resultHTML;
+            document.getElementById('resultsSection').style.display = 'block';
+            
+            // Animação de resultados
+            setTimeout(() => {
+                document.querySelectorAll('.result-item').forEach((item, index) => {
+                    setTimeout(() => {
+                        item.classList.add('flip-in');
+                    }, index * 300);
+                });
+            }, 100);
+            
+            // Atualiza o saldo baseado nos resultados
+            balance = 5000 + totalWin;
+            updateBalance();
+            
+            // Tocar efeito sonoro de vitória ou derrota geral
+            if (globalWin) {
+                playSound('win');
+                document.body.classList.add('winning-animation');
+                
+                // Criar chuva de dinheiro
+                createMoneyFall();
+                setTimeout(() => {
+                    createMoneyFall();
+                }, 1000);
+                
+                // Parar a animação após alguns segundos
+                setTimeout(() => {
+                    document.body.classList.remove('winning-animation');
+                }, 3000);
+            } else {
+                playSound('lose');
+                document.body.classList.add('losing-animation');
+                
+                // Parar a animação após alguns segundos
+                setTimeout(() => {
+                    document.body.classList.remove('losing-animation');
+                }, 3000);
+            }
+        }
+        
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            updateBalance();
+            
+            // Botão toggle som
+            document.getElementById('soundToggle').addEventListener('click', function() {
+                soundEnabled = !soundEnabled;
+                if (soundEnabled) {
+                    this.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    playSound('coin');
+                } else {
+                    this.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                }
+            });
+            
+            // Botão de resgatar bônus
+            document.getElementById('bonusBtn').addEventListener('click', function() {
+                if (!bonusClaimed) {
+                    balance += 1000;
+                    updateBalance();
+                    playSound('bonus');
+                    bonusClaimed = true;
+                    
+                    // Feedback visual
+                    const oldBalance = parseInt(balance) - 1000;
+                    const bonusElem = document.createElement('div');
+                    bonusElem.className = 'fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 px-6 py-3 rounded-full font-bold z-50 animate-bounce';
+                    bonusElem.innerText = '🎉 Bônus de R$1.000,00 adicionado ao seu saldo!';
+                    document.body.appendChild(bonusElem);
+                    
+                    setTimeout(() => {
+                        bonusElem.remove();
+                    }, 3000);
+                    
+                    // Desativar botão
+                    this.disabled = true;
+                    this.innerText = 'Bônus Resgatado';
+                    this.classList.remove('from-purple-500', 'to-indigo-600', 'hover:from-purple-600', 'hover:to-indigo-700');
+                    this.classList.add('bg-gray-700', 'cursor-not-allowed');
+                }
+            });
+            
+            // Botões de odds
+            document.querySelectorAll('.odds-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Desselecionar botão anterior
+                    if (selectedOddsBtn) {
+                        selectedOddsBtn.classList.remove('selected');
+                    }
+                    
+                    // Destacar a seleção atual
+                    this.classList.add('selected');
+                    selectedOddsBtn = this;
+                    
+                    // Guarda a seleção atual
+                    currentSelection = {
+                        id: Date.now(),
+                        eventId: this.getAttribute('data-event'),
+                        selection: this.getAttribute('data-selection'),
+                        odd: parseFloat(this.getAttribute('data-odd'))
+                    };
+                    
+                    // Atualiza a descrição do evento
+                    const eventTitle = this.closest('.game-card').querySelector('.font-bold').textContent;
+                    currentSelection.eventTitle = eventTitle;
+                    
+                    // Atualiza a seleção para texto amigável
+                    const selectionMap = {
+                        'home': 'Casa',
+                        'away': 'Visitante',
+                        'draw': 'Empate'
+                    };
+                    currentSelection.selectionText = selectionMap[currentSelection.selection] || currentSelection.selection;
+                    
+                    // Focus no campo de stake
+                    document.getElementById('stake').focus();
+                    
+                    // Tocar efeito sonoro de seleção
+                    playSound('select');
+                });
+            });
+            
+            // Formulário de aposta
+            document.getElementById('betForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const stakeInput = document.getElementById('stake');
+                const stakeValue = parseFloat(stakeInput.value);
+                
+                if (!stakeValue || stakeValue <= 0) {
+                    alert('Por favor, insira um valor válido para a aposta');
+                    return;
+                }
+                
+                if (!currentSelection) {
+                    alert('Por favor, selecione um evento para apostar');
+                    return;
+                }
+                
+                if (stakeValue > balance) {
+                    alert('Saldo insuficiente para esta aposta');
+                    return;
+                }
+                
+                // Adiciona a nova aposta à lista
+                bets.push({
+                    id: currentSelection.id,
+                    event: currentSelection.eventTitle,
+                    selection: currentSelection.selectionText,
+                    odd: currentSelection.odd,
+                    stake: stakeValue
+                });
+                
+                // Subtrai do saldo temporariamente
+                balance -= stakeValue;
+                updateBalance();
+                
+                // Atualiza a lista
+                updateBetList();
+                
+                // Tocar efeito sonoro
+                playSound('bet');
+                
+                // Reinicia a seleção
+                currentSelection = null;
+                if (selectedOddsBtn) {
+                    selectedOddsBtn.classList.remove('selected');
+                    selectedOddsBtn = null;
+                }
+                stakeInput.value = '';
+                
+                // Feedback visual
+                const feedback = document.createElement('div');
+                feedback.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full animate-fadeInOut';
+                feedback.innerHTML = '<i class="fas fa-check mr-2"></i>Aposta adicionada com sucesso!';
+                document.body.appendChild(feedback);
+                
+                setTimeout(() => {
+                    feedback.remove();
+                }, 2000);
+            });
+            
+            // Botão Limpar
+            document.getElementById('clearBets').addEventListener('click', function() {
+                if (bets.length > 0) {
+                    // Devolver o dinheiro ao saldo
+                    const totalStake = bets.reduce((sum, bet) => sum + bet.stake, 0);
+                    balance += totalStake;
+                    updateBalance();
+                    
+                    // Limpar apostas
+                    bets = [];
+                    updateBetList();
+                    
+                    // Tocar efeito sonoro
+                    playSound('remove');
+                    
+                    // Feedback visual
+                    const feedback = document.createElement('div');
+                    feedback.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full animate-fadeInOut';
+                    feedback.innerHTML = '<i class="fas fa-trash-restore mr-2"></i>Carrinho esvaziado e valor devolvido!';
+                    document.body.appendChild(feedback);
+                    
+                    setTimeout(() => {
+                        feedback.remove();
+                    }, 2000);
+                }
+            });
+            
+            // Botão Misturar
+            document.getElementById('randomBtn').addEventListener('click', function() {
+                if (bets.length > 0) {
+                    // Simula mixagem de apostas
+                    const betList = document.getElementById('betList');
+                    betList.classList.add('flip-in');
+                    
+                    // Tocar efeito sonoro
+                    playSound('coin');
+                    
+                    setTimeout(() => {
+                        betList.classList.remove('flip-in');
+                    }, 800);
+                    
+                    // Feedback visual
+                    const feedback = document.createElement('div');
+                    feedback.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-4 py-2 rounded-full animate-fadeInOut';
+                    feedback.innerHTML = '<i class="fas fa-random mr-2"></i>Apostas misturadas!';
+                    document.body.appendChild(feedback);
+                    
+                    setTimeout(() => {
+                        feedback.remove();
+                    }, 2000);
+                } else {
+                    alert('Adicione apostas para misturar');
+                }
+            });
+            
+            // Botão Atualizar
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                this.classList.add('animate-spin');
+                
+                // Tocar efeito sonoro
+                playSound('select');
+                
+                setTimeout(() => {
+                    this.classList.remove('animate-spin');
+                    
+                    // Feedback visual
+                    const feedback = document.createElement('div');
+                    feedback.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-accent text-white px-4 py-2 rounded-full animate-fadeInOut';
+                    feedback.innerHTML = '<i class="fas fa-sync-alt mr-2"></i>Eventos atualizados!';
+                    document.body.appendChild(feedback);
+                    
+                    setTimeout(() => {
+                        feedback.remove();
+                    }, 2000);
+                }, 800);
+            });
+            
+            // Campo de stake muda
+            document.getElementById('stake').addEventListener('input', function() {
+                currentStake = parseFloat(this.value) || 0;
+                calculatePotentialWin();
+            });
+            
+            // Mostrar resultados (simulação)
+            document.getElementById('betForm').addEventListener('submit', function(e) {
+                if (bets.length >= 1 && Math.random() > 0.3) {
+                    setTimeout(showResults, 1500);
+                }
+            });
+            
+            // Ocultar resultados
+            document.getElementById('hideResults').addEventListener('click', function() {
+                document.getElementById('resultsSection').style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
